@@ -65,9 +65,15 @@ class ClientApp(Subscriber):
         try:
             self.__serverConnection.connect()
             print("Successfully Connected to ROV")
+        
+        #UI testing
         except:
-            os.system('pause')
-            sys.exit()
+            #os.system('pause')
+            
+            print("Could not connect to ROV, starting anyway...")
+            self.__window.startMainLoop()
+            return
+            #sys.exit()
 
         #The sending and receiving message channels
         incomingMessageChannel = MessageChannel()
@@ -131,6 +137,7 @@ class ClientApp(Subscriber):
         self.__cleanup()
 
     def onclosewindow(self):
+        self.__window.close()
         self.stop()
 
     #Tells the ROV client to stop running
@@ -139,34 +146,37 @@ class ClientApp(Subscriber):
 
     #Used to close resources as part of the shutdown process
     def __cleanup(self) -> None:
-        self.__window.addLog("Shutting down...")
+        #UI testing
+        try:
+            self.__window.addLog("Shutting down...")
 
-        self.pyrunning = False
+            self.pyrunning = False
 
-        #Stops the xbox controller listener thread
-        self.__controllerInput.stop()
+            #Stops the xbox controller listener thread
+            self.__controllerInput.stop()
 
-        self.__window.addLog("send shutdown mssage")
+            self.__window.addLog("send shutdown mssage")
 
-        #Tells the server that it is shutting down
-        message = Message(MessageType.SYSTEM_STATUS, SystemStatus.SHUT_DOWN)
-        self.__outgoingMessageChannel.broadcast(message)
+            #Tells the server that it is shutting down
+            message = Message(MessageType.SYSTEM_STATUS, SystemStatus.SHUT_DOWN)
+            self.__outgoingMessageChannel.broadcast(message)
 
-        self.__subWriter.stop()
+            self.__subWriter.stop()
 
-        #Sends EOF to the server, so that its socket reader stops blocking
-        self.__serverConnection.shutdown(socket.SHUT_WR)
+            #Sends EOF to the server, so that its socket reader stops blocking
+            self.__serverConnection.shutdown(socket.SHUT_WR)
 
-        #Waits for pub listener to stop blocking (occurs once the server sends EOF
-        #by shutting down its side of the socekt)
-        self.__pubListener.stop()
+            #Waits for pub listener to stop blocking (occurs once the server sends EOF
+            #by shutting down its side of the socekt)
+            self.__pubListener.stop()
 
-        #Finally closes the socket, since the server is disconnected
-        self.__serverConnection.close()
+            #Finally closes the socket, since the server is disconnected
+            self.__serverConnection.close()
 
-        #Closes the data log file
-        self.__dataLogger.close()
-
+            #Closes the data log file
+            self.__dataLogger.close()
+        except:
+            pass
     #Listens for system status updates
     def recieveMessage(self, message:Message) -> None:
         #Checks if the message is a shutdown message

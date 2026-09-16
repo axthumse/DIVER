@@ -20,6 +20,7 @@ from commands.CommandFactory import CommandFactory
 from ROV import ROV
 from collectors.SensorDataCollector import SensorDataCollector
 from collectors.CameraFeedCollector import CameraFeedCollector
+from collectors.PropulsionDataCollector import PropulsionDataCollector
 
 #Represents the ROV program
 class ROVApp(Subscriber):
@@ -33,6 +34,7 @@ class ROVApp(Subscriber):
     __rov:ROV = None                                 #The ROV
     __sensorDataCollector:SensorDataCollector = None #Sends the sensor data to the client
     __cameraFeedCollector:CameraFeedCollector = None #Sends the camera frames to the client
+    __propulsionDataCollector:PropulsionDataCollector = None #Sends thruster speeds to the client
     __subWriter:SubWriter = None
 
     #The setup used for initializing all of the resources that will be needed
@@ -90,6 +92,11 @@ class ROVApp(Subscriber):
         self.__sensorDataCollector.setSampleFrequency(1)
         self.__sensorDataCollector.start()
 
+        #Retrieves and sends the propulsion / thruster data to the client
+        self.__propulsionDataCollector = PropulsionDataCollector(self.__rov.getPropSystem(), self.__outgoingMessageChannel)
+        self.__propulsionDataCollector.setSampleFrequency(1)
+        self.__propulsionDataCollector.start()
+
         #Retrieves and sends the camera frames to the client
         self.__cameraFeedCollector = CameraFeedCollector(self.__rov.getVisionSystem(), self.__outgoingMessageChannel)
         self.__cameraFeedCollector.setSampleFrequency(60)
@@ -133,6 +140,7 @@ class ROVApp(Subscriber):
     def __cleanup(self) -> None:
         print("shutting down...")
         self.__sensorDataCollector.stop()
+        self.__propulsionDataCollector.stop()
         self.__cameraFeedCollector.stop()
         self.__server.stop()
         self.__commandProcessor.stop()
